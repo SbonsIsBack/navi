@@ -6,8 +6,9 @@
 
 ## 📌 Task attualmente in lavorazione
 
-**Nessuno.** Fase 6 completata; in attesa di autorizzazione per iniziare la Fase 7
-(Auth Mock e Modelli Social).
+**Nessuno: roadmap completata.** Tutte e 7 le fasi sono chiuse e verificate.
+Da qui in avanti si lavora su estensioni, non più sul piano originale — vedi
+"Prossimi passi possibili" in fondo.
 
 ## 🏗️ Decisioni architetturali
 
@@ -17,7 +18,7 @@
 | Versione Astro | **5.x** (non 7.x, ultima major) | `@vite-pwa/astro` supporta ufficialmente fino ad Astro 5; scelta la strada stabile con pieno supporto dell'ecosistema PWA. |
 | PWA | **`@vite-pwa/astro`** (wrapper di `vite-plugin-pwa`, Workbox `generateSW`) | Manifest + Service Worker con precache dell'intero output statico → apertura garantita in Airplane Mode. `registerType: autoUpdate`. |
 | Storage offline | **Dexie** su IndexedDB (da introdurre in Fase 3) | API ergonomica, query indicizzate, ottimo supporto TS. |
-| Backend | **Nessuno** (Local First) | Tutte le feature richieste vivono lato client. Se in futuro servirà sync live (Fase 7+), candidato: ExpressJS per condividere i tipi TS col client. Decisione rimandata. |
+| Backend | **Nessuno, e a roadmap chiusa resta la scelta giusta** | Tutte e sette le fasi sono state realizzate lato client: nessun requisito ha richiesto un server. Un backend servirà solo per due cose che *non si possono* fare nel browser: validare i token Apple/Google (farlo client-side sarebbe teatro, non autenticazione) e ricevere le posizioni live condivise. Quando servirà: **ExpressJS**, per condividere i tipi TypeScript già definiti in `src/lib/db.ts` senza riscriverli. Il punto d'innesto esiste già: `SyncAdapter` in `src/lib/sync.ts` e `signInWithProvider` in `src/lib/auth.ts`. |
 | Icone PWA | Generate da `scripts/generate-icons.mjs` (encoder PNG puro Node, zero dipendenze) | Riproducibili offline con `npm run icons`; include variante maskable con safe zone. |
 | Alias import | `@/*` → `src/*` | Percorsi puliti nei componenti. |
 | Sorgente velocità | `coords.speed` (Doppler GNSS) con fallback su derivata haversine | Il dato Doppler del chip è molto più stabile della derivata delle posizioni; il fallback copre desktop e browser che non lo espongono. La UI segnala quale delle due è in uso. |
@@ -37,6 +38,10 @@
 | Frequenza di salvataggio | Viaggio riscritto ogni 10 fix; **checkpoint scritti subito** | Aggiornare la riga del viaggio a ogni fix sarebbero migliaia di scritture all'ora per un dato che nessuno sta guardando. Orario e velocità sotto un varco invece non si possono ricostruire a posteriori, quindi si persistono all'istante. |
 | Viaggi orfani | Chiusi all'avvio sull'ultimo checkpoint registrato | Se l'app viene chiusa durante il tracking nessuno esegue `endTrip()`: senza questa bonifica quei viaggi resterebbero per sempre "in corso". |
 | Chiave di percorso | `routeKey` = varchi attraversati in ordine, precalcolata alla chiusura | Rende il raggruppamento "Percorsi" una lettura di campo indicizzato invece di una ricostruzione dai checkpoint a ogni apertura dello storico. |
+| Accesso facoltativo | Nessuna schermata è protetta; il profilo serve solo a dare identità ai dati | Un tachimetro che chiede di registrarsi prima di mostrare la velocità è un tachimetro rotto. L'utente di test è un profilo locale senza alcuna verifica di credenziali — e non deve averne, perché non c'è nulla da proteggere finché i dati non lasciano il device. |
+| Login federati | `signInWithProvider` lancia un errore esplicito invece di simulare l'accesso | Sign in with Apple e Google restituiscono un token che **deve** essere verificato lato server contro le chiavi pubbliche del provider. Un finto login che crea un profilo locale darebbe l'illusione di un'identità verificata. Meglio un flusso predisposto e onestamente etichettato "prossimamente". |
+| Coordinate live | Pattern **outbox**: si accoda sempre in locale con `syncState`, un adattatore drena | Permette di aggiungere il cloud senza toccare né il motore GPS né il registratore. `localOnlyAdapter` non invia nulla e non finge di farlo: la coda resta un archivio locale invece che una perdita di dati silenziosa. |
+| Avatar | Emoji + colore, oppure foto ridimensionata a 128 px come data URL nel DB | Nessun CDN e nessun upload: l'avatar deve esserci anche in Airplane Mode. Una foto da fotocamera intatta gonfierebbe IndexedDB di megabyte per un'immagine mostrata a 72 px. |
 | Isolamento dell'effect | `untracked(() => batch(() => onFix(fix)))` | `onFix` legge e riscrive gli stessi signal: senza `untracked` l'effect si auto-invalida ("Cycle detected") e **interrompe l'elaborazione a metà**, saltando del tutto il rilevamento dei varchi. |
 
 ## 🗺️ Roadmap
@@ -97,10 +102,22 @@
 - [x] Pagina `/storico` con le due viste, schede viaggio espandibili, eliminazione viaggio a cascata
 - [x] Verifica end-to-end: 2 viaggi su 3 varchi → checkpoint con orari esatti e 140 km/h a ogni transito, 2 tratte per viaggio con media corretta, raggruppamento del percorso ripetuto, persistenza dopo reload
 
-### Fase 7: Auth Mock e Modelli Social ⬜
-- [ ] Utente "Test" locale fittizio (bypassabile)
-- [ ] Modelli dati Profilo/Avatar e coordinate live (predisposizione sync cloud)
-- [ ] Flussi UI predisposti per futuri Apple/Google Login
+### Fase 7: Auth Mock e Modelli Social ✅
+- [x] Schema DB v4: tabelle `profiles` (con Avatar) e `livePositions` (outbox coordinate live)
+- [x] Autenticazione (`src/lib/auth.ts`): utente di test locale, sessione persistita, **nessuna schermata protetta**
+- [x] Avatar: emoji + colore, oppure foto ridimensionata a 128 px e salvata come data URL nel DB (nessun CDN, funziona offline)
+- [x] Architettura di sync (`src/lib/sync.ts`): interfaccia `SyncAdapter`, `localOnlyAdapter` di default, coda outbox con `syncState` e ciclo di drenaggio già scritto
+- [x] Condivisione live opzionale e spenta di default, un punto ogni 10 s
+- [x] Pagina `/profilo` con flussi Apple/Google predisposti ed etichettati "prossimamente"
+- [x] Verifica end-to-end: le tre schermate principali restano accessibili senza account; profilo creato, rinominato e persistito; 3 posizioni accodate a intervalli di 10.0 s; sessione sopravvive al reload; uscire non tocca viaggi e varchi
+
+---
+
+## ✅ Roadmap completata
+
+Tutte e 7 le fasi sono chiuse. L'app è una PWA installabile e offline-first che
+misura la velocità GPS, riconosce i varchi Tutor censiti, calcola la media di
+tratta e conserva lo storico dei viaggi, senza alcun backend.
 
 ## 📦 Dipendenze introdotte
 
@@ -163,3 +180,21 @@
 - `loadGatesIntoEngine()` va richiamata quando i varchi cambiano: oggi basta il
   mount della Dashboard perché `/varchi` è una pagina separata (navigare
   indietro rimonta l'island e ricarica i varchi).
+
+## 🔭 Prossimi passi possibili (fuori roadmap)
+
+Nessuno di questi è necessario: l'app è completa e funzionante così.
+
+1. **Backend ExpressJS** per chiudere i due soli buchi che il browser non può
+   colmare da solo: verifica dei token Apple/Google e ricezione delle posizioni
+   live. Innesto: implementare `SyncAdapter` e sostituire il corpo di
+   `signInWithProvider`. Nient'altro dell'app va toccato.
+2. **Persistenza della tratta in corso**: oggi se l'app viene chiusa a metà di
+   una tratta Tutor il viaggio si chiude correttamente ma la tratta aperta si
+   perde. Si risolverebbe salvando `activeSegment` nei `settings`.
+3. **Import/export dei varchi** (JSON o GPX) per condividere i censimenti fra
+   utenti senza bisogno di un server.
+4. **Rotta di traccia sulla mappa**: i fix sono già tutti in `db.fixes`, manca
+   solo di disegnarli come polyline nello storico.
+5. **Notifica di superamento**: avviso sonoro o aptico quando la media di
+   tratta supera il limite, utile perché in auto non si guarda lo schermo.

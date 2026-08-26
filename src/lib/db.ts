@@ -106,6 +106,58 @@ export interface TripSegment {
   speedLimit: number | null;
 }
 
+/** Da dove proviene l'identità: oggi solo locale, domani Apple/Google. */
+export type AuthProvider = 'local' | 'apple' | 'google';
+
+/** Profilo utente. Vive sul device; il sync cloud è predisposto, non attivo. */
+export interface Profile {
+  id?: number;
+  displayName: string;
+  provider: AuthProvider;
+  /**
+   * Identificativo rilasciato dal provider esterno (`sub` di Apple/Google).
+   * Vuoto per l'utente locale: è la chiave con cui un futuro backend
+   * riconoscerebbe lo stesso utente su device diversi.
+   */
+  providerId: string | null;
+  email: string | null;
+  /** Emoji usata come avatar quando non c'è una foto. */
+  avatarEmoji: string;
+  /** Colore di sfondo dell'avatar (token esadecimale). */
+  avatarColor: string;
+  /**
+   * Foto profilo come data URL, ridimensionata a lato 128 px.
+   * Sta nel DB e non su un CDN: l'app deve funzionare in Airplane Mode.
+   */
+  avatarPhoto: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** Stato di una posizione nella coda di invio. */
+export type SyncState = 'pending' | 'sent' | 'failed';
+
+/**
+ * Posizione in coda per la futura condivisione live.
+ *
+ * È una **outbox**: la si scrive sempre in locale e un adattatore di sync la
+ * drena quando (e se) esisterà un backend. Questo è ciò che rende possibile
+ * aggiungere il cloud senza toccare la logica di tracking, ed è il motivo per
+ * cui la tabella esiste già ora che l'app è puramente locale.
+ */
+export interface LivePosition {
+  id?: number;
+  profileId: number;
+  t: number;
+  lat: number;
+  lon: number;
+  speedKmh: number;
+  heading: number | null;
+  syncState: SyncState;
+  /** Tentativi di invio già effettuati, per un futuro backoff. */
+  attempts: number;
+}
+
 export class NaviDB extends Dexie {
   fixes!: Table<Fix, number>;
   settings!: Table<Setting, string>;
@@ -113,6 +165,8 @@ export class NaviDB extends Dexie {
   trips!: Table<Trip, number>;
   checkpoints!: Table<Checkpoint, number>;
   segments!: Table<TripSegment, number>;
+  profiles!: Table<Profile, number>;
+  livePositions!: Table<LivePosition, number>;
 
   constructor() {
     super('navi');
@@ -131,6 +185,12 @@ export class NaviDB extends Dexie {
       trips: '++id, startedAt, endedAt, routeKey',
       checkpoints: '++id, tripId, t, gateId',
       segments: '++id, tripId, startedAt',
+    });
+    // v4: profilo e coda posizioni live. `syncState` è indicizzato perché è
+    // il campo su cui un futuro adattatore cercherebbe cosa resta da inviare.
+    this.version(4).stores({
+      profiles: '++id, provider, providerId',
+      livePositions: '++id, syncState, t, profileId',
     });
   }
 }

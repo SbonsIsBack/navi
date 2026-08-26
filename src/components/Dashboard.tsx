@@ -6,6 +6,8 @@ import { stopGps } from '@/lib/gps';
 import { releaseWakeLock } from '@/lib/wakelock';
 import { startTutorEngine, loadGatesIntoEngine, resetTutorEngine } from '@/lib/tutor';
 import { startRecorder, startTrip, endTrip, closeOrphanTrips } from '@/lib/recorder';
+import { restoreSession } from '@/lib/auth';
+import { restoreSharingPreference } from '@/lib/sync';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import { MockControls } from './MockControls';
 import { GpsStatusBar } from './GpsStatusBar';
@@ -23,6 +25,10 @@ export default function Dashboard() {
     // Un viaggio lasciato aperto da una sessione interrotta va chiuso.
     void closeOrphanTrips().catch(() => {});
     void loadGatesIntoEngine().then(setGateCount);
+    // Profilo e preferenza di condivisione servono al registratore per
+    // decidere se accodare posizioni live.
+    void restoreSession().catch(() => {});
+    void restoreSharingPreference().catch(() => {});
     // Potatura all'avvio: tiene il DB in salute senza intervento dell'utente.
     void pruneOldFixes(7).catch(() => {});
 
@@ -68,8 +74,9 @@ export default function Dashboard() {
           }}
         />
         <div class="dashboard__nav">
-          <a class="nav-link" href="/varchi">VARCHI TUTOR</a>
+          <a class="nav-link" href="/varchi">VARCHI</a>
           <a class="nav-link" href="/storico">STORICO</a>
+          <a class="nav-link" href="/profilo">PROFILO</a>
         </div>
       </footer>
 

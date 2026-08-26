@@ -8,6 +8,7 @@ import {
 } from '@/lib/db';
 import { lastFix } from '@/lib/gps';
 import { lastPass, lastCompleted, travelledBetween } from '@/lib/tutor';
+import { enqueueLivePosition } from '@/lib/sync';
 
 /**
  * Registratore dello storico: trasforma il flusso di eventi del motore Tutor
@@ -128,6 +129,9 @@ function onFix(fix: Fix) {
     fixesSincePersist = 0;
     void persistTrip(false).catch(() => {});
   }
+
+  // Coda per la condivisione live: no-op finché l'utente non la attiva.
+  void enqueueLivePosition(fix).catch(() => {});
 }
 
 /**

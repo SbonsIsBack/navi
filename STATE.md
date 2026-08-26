@@ -6,8 +6,8 @@
 
 ## 📌 Task attualmente in lavorazione
 
-**Nessuno.** Fase 1 completata; in attesa di autorizzazione per iniziare la Fase 2
-(Theming Engine e UI Core).
+**Nessuno.** Fase 2 completata; in attesa di autorizzazione per iniziare la Fase 3
+(Core GPS Tracker e Database Offline).
 
 ## 🏗️ Decisioni architetturali
 
@@ -31,12 +31,14 @@
 - [x] Registrazione SW nel layout (`virtual:pwa-register`)
 - [x] Creazione `STATE.md` e primo commit di setup
 
-### Fase 2: Theming Engine e UI Core ⬜
-- [ ] Layout principale + context/store globale per la gestione dei temi (switchabile, estendibile)
-- [ ] Mock della velocità (slider/random generator) per testare la UI senza GPS
-- [ ] Tachimetro **Analogico** (lancetta fluida)
-- [ ] Tachimetro **Digitale** (numeri grandi, font moderno minimalista)
-- [ ] Tachimetro **Retro Digital Dashboard** (dark anni '90-2000, barrette verdi luminescenti)
+### Fase 2: Theming Engine e UI Core ✅
+- [x] Layout principale (`Dashboard.tsx`) + store globale temi (`src/lib/themes.ts`: registro estendibile, persistenza in localStorage, token CSS per tema in `src/styles/themes.css` via `data-theme`)
+- [x] Mock della velocità (`src/lib/speed.ts`): slider manuale + "demo drive" con accelerazioni/frenate simulate; smoothing esponenziale a 60fps (`smoothSpeed`)
+- [x] Tachimetro **Analogico** (SVG, quadrante con tacche/etichette, lancetta fluida)
+- [x] Tachimetro **Digitale** (numero gigante tabular-nums + barra di progresso)
+- [x] Tachimetro **Retro Digital Dashboard** (28 barrette verdi luminescenti ad arco + display a 7 segmenti disegnato in SVG, zero font esterni)
+- [x] Slot UI "MEDIA TUTOR" predisposto (si popola in Fase 5)
+- [x] Verifica visiva dei 3 temi via Chromium/Playwright (screenshot) + persistenza tema dopo reload
 
 ### Fase 3: Core GPS Tracker e Database Offline ⬜
 - [ ] Setup Dexie/IndexedDB per storage persistente client
@@ -67,6 +69,7 @@
 - `@astrojs/preact@^4` + `preact@^10` + `@preact/signals@^2` — islands interattive
 - `@vite-pwa/astro@^1` (dev) — Manifest + Service Worker Workbox
 - `typescript@^5` (dev)
+- `playwright-core` (dev) — verifica visiva headless con il Chromium di sistema (nessun download browser)
 
 ## 🛠️ Comandi
 
@@ -79,5 +82,13 @@
 
 - La PWA è installabile e apre offline dopo la prima visita (precache Workbox).
 - `devOptions.enabled: false`: il SW è attivo solo in build/preview, non in dev.
-- I token CSS in `Layout.astro` (`--color-*`, `--font-ui`) sono le fondamenta minime:
-  in Fase 2 verranno promossi a vero Theming Engine (temi: Analogico, Digitale, Retro).
+- **Interfaccia sorgente velocità**: il GPS (Fase 3) dovrà solo scrivere `rawSpeed`
+  in `src/lib/speed.ts`; smoothing e UI sono già agganciati a `smoothSpeed`.
+  Il pannello `MockControls` andrà nascosto/degradato a strumento dev quando
+  arriverà il provider GPS reale.
+- Theming: per aggiungere un tema → entry in `THEMES` (`src/lib/themes.ts`) +
+  blocco `[data-theme='...']` in `src/styles/themes.css`. Il tema attivo è
+  applicato via `data-theme` su `<html>`; uno script inline in `index.astro`
+  lo ripristina da localStorage prima dell'idratazione (niente flash).
+- Il display a 7 segmenti è SVG puro (`SevenSegment.tsx`): nessun webfont da
+  scaricare, resa identica offline.

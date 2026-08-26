@@ -1,4 +1,6 @@
 ---
+import '@/styles/themes.css';
+
 interface Props {
   title?: string;
 }
@@ -35,16 +37,7 @@ const { title = 'Navi' } = Astro.props;
 </html>
 
 <style is:global>
-  /* Fondamenta minime, prima del Theming Engine (Fase 2). */
-  :root {
-    --color-bg: #0b1220;
-    --color-surface: #131c30;
-    --color-text: #e8f0ff;
-    --color-text-dim: #8fa3c4;
-    --color-accent: #2ee6a6;
-    --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  }
-
+  /* Reset di base; i token colore/font vivono in src/styles/themes.css. */
   *,
   *::before,
   *::after {

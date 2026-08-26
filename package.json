@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@vite-pwa/astro": "^1.2.0",
+    "playwright-core": "^1.62.1",
     "typescript": "^5.9.3"
   }
 }

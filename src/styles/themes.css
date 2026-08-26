@@ -1,0 +1,379 @@
+/* ============================================================
+   Theming Engine — token globali per tema.
+   Nuovo tema = nuovo blocco [data-theme='...'] + entry in themes.ts.
+   ============================================================ */
+
+:root,
+[data-theme='digital'] {
+  --color-bg: #0b1220;
+  --color-surface: #131c30;
+  --color-border: #223052;
+  --color-text: #e8f0ff;
+  --color-text-dim: #8fa3c4;
+  --color-accent: #2ee6a6;
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: var(--font-ui);
+}
+
+[data-theme='analog'] {
+  --color-bg: #16181d;
+  --color-surface: #1f2229;
+  --color-border: #34383f;
+  --color-text: #f0f0ec;
+  --color-text-dim: #9a9c99;
+  --color-accent: #ff4b3e;
+}
+
+[data-theme='retro'] {
+  --color-bg: #04070a;
+  --color-surface: #0a1210;
+  --color-border: #17352a;
+  --color-text: #b8ffd9;
+  --color-text-dim: #4e8a6c;
+  --color-accent: #39ff88;
+  --retro-glow: rgba(57, 255, 136, 0.55);
+  --retro-ghost: rgba(57, 255, 136, 0.09);
+}
+
+/* ============================================================
+   Layout dashboard
+   ============================================================ */
+
+.dashboard {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  transition: background 0.3s;
+}
+
+.dashboard__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+.dashboard__brand {
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  color: var(--color-text-dim);
+  font-size: 0.9rem;
+}
+
+.dashboard__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0 1rem;
+  min-height: 0;
+}
+
+.theme-switcher {
+  display: flex;
+  gap: 2px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 3px;
+}
+
+.theme-btn {
+  border: 0;
+  background: transparent;
+  color: var(--color-text-dim);
+  font: inherit;
+  font-size: 0.78rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.theme-btn--active {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-weight: 600;
+}
+
+/* Slot velocità media (si popola in Fase 5) */
+.avg-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  opacity: 0.55;
+}
+
+.avg-slot__label {
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  color: var(--color-text-dim);
+}
+
+.avg-slot__value {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* ============================================================
+   Contenitore tachimetro
+   ============================================================ */
+
+.speedo {
+  width: min(92vw, 60dvh, 480px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.speedo svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ============================================================
+   Tema Analogico
+   ============================================================ */
+
+.speedo--analog .dial-face {
+  fill: var(--color-surface);
+  stroke: var(--color-border);
+  stroke-width: 3;
+}
+
+.speedo--analog .dial-rim {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.speedo--analog .tick {
+  stroke: var(--color-text-dim);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.speedo--analog .tick--major {
+  stroke: var(--color-text);
+  stroke-width: 4;
+}
+
+.speedo--analog .dial-label {
+  fill: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: 22px;
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.speedo--analog .dial-unit {
+  fill: var(--color-text-dim);
+  font-family: var(--font-ui);
+  font-size: 18px;
+  letter-spacing: 0.2em;
+  text-anchor: middle;
+}
+
+.speedo--analog .needle {
+  fill: var(--color-accent);
+}
+
+.speedo--analog .needle-tail {
+  fill: var(--color-text-dim);
+}
+
+.speedo--analog .needle-hub {
+  fill: var(--color-text);
+  stroke: var(--color-bg);
+  stroke-width: 3;
+}
+
+.speedo--analog .analog-readout {
+  margin-top: -3.2rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-dim);
+}
+
+/* ============================================================
+   Tema Digitale
+   ============================================================ */
+
+.speedo--digital {
+  gap: 0.25rem;
+}
+
+.digital-value {
+  font-family: var(--font-display);
+  font-size: clamp(6rem, 34vw, 11rem);
+  font-weight: 200;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}
+
+.digital-unit {
+  font-size: 1.1rem;
+  letter-spacing: 0.35em;
+  color: var(--color-text-dim);
+  text-transform: uppercase;
+}
+
+.digital-bar {
+  width: 70%;
+  height: 4px;
+  margin-top: 1.2rem;
+  border-radius: 2px;
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.digital-bar__fill {
+  height: 100%;
+  width: 100%;
+  background: var(--color-accent);
+  transform-origin: left;
+  transform: scaleX(0);
+}
+
+/* ============================================================
+   Tema Retro Digital Dashboard
+   ============================================================ */
+
+.speedo--retro {
+  position: relative;
+  /* Spazio sotto l'arco per l'unità di misura del readout in overlay. */
+  padding-bottom: 3.2rem;
+}
+
+.retro-bar {
+  fill: var(--retro-ghost);
+}
+
+.retro-bar--on {
+  fill: var(--color-accent);
+  filter: drop-shadow(0 0 6px var(--retro-glow));
+}
+
+.retro-scale {
+  fill: var(--color-text-dim);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 600;
+  text-anchor: middle;
+}
+
+.retro-scale--end {
+  text-anchor: middle;
+}
+
+.retro-readout {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sseg-number {
+  display: flex;
+  gap: 0.5rem;
+  filter: drop-shadow(0 0 10px var(--retro-glow, transparent));
+}
+
+/* Più specifico di `.speedo svg` per non ereditarne width: 100%. */
+.sseg-number .sseg-digit {
+  width: clamp(2.4rem, 10vw, 3.6rem);
+  height: auto;
+}
+
+.sseg-on {
+  fill: var(--color-accent);
+}
+
+.sseg-off {
+  fill: var(--retro-ghost, transparent);
+}
+
+.retro-unit {
+  margin-top: 0.6rem;
+  font-size: 0.95rem;
+  letter-spacing: 0.4em;
+  color: var(--color-text-dim);
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   Pannello mock (dev)
+   ============================================================ */
+
+.mock {
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.mock__toggle {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-dim);
+  font: inherit;
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  padding: 0.55rem;
+  cursor: pointer;
+}
+
+.mock__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0 1rem 1rem;
+}
+
+.mock__demo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--color-text-dim);
+}
+
+.mock__demo input {
+  accent-color: var(--color-accent);
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.mock__slider {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.mock__slider input {
+  flex: 1;
+  accent-color: var(--color-accent);
+}
+
+.mock__slider input:disabled {
+  opacity: 0.35;
+}
+
+.mock__value {
+  min-width: 5.5ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  color: var(--color-text);
+}

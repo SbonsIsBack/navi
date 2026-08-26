@@ -1,0 +1,17 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import ProfilePage from '@/components/profile/ProfilePage';
+---
+
+<Layout title="Profilo — Navi">
+  <ProfilePage client:only="preact" />
+</Layout>
+
+<script is:inline>
+  try {
+    var t = localStorage.getItem('navi:theme');
+    if (t === 'analog' || t === 'digital' || t === 'retro') {
+      document.documentElement.dataset.theme = t;
+    }
+  } catch (e) {}
+</script>

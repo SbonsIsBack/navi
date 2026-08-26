@@ -1,0 +1,24 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Dashboard from '@/components/Dashboard';
+---
+
+<Layout title="Navi">
+  <Dashboard client:only="preact" />
+  <noscript>
+    <p style="padding: 2rem; text-align: center;">
+      Navi richiede JavaScript per il tracking GPS.
+    </p>
+  </noscript>
+</Layout>
+
+<script is:inline>
+  // Applica subito il tema salvato, prima dell'idratazione della island,
+  // per evitare il flash del tema di default.
+  try {
+    var t = localStorage.getItem('navi:theme');
+    if (t === 'analog' || t === 'digital' || t === 'retro') {
+      document.documentElement.dataset.theme = t;
+    }
+  } catch (e) {}
+</script>

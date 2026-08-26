@@ -8,6 +8,7 @@ import {
 import { closeOrphanTrips } from '@/lib/recorder';
 import { themeId, applyThemeToDocument } from '@/lib/themes';
 import { TripCard } from './TripCard';
+import { url } from '@/lib/paths';
 
 type View = 'days' | 'routes';
 
@@ -34,7 +35,7 @@ export default function HistoryPage() {
   return (
     <div class="history">
       <header class="history__header">
-        <a class="history__back" href="/" aria-label="Torna al tachimetro">‹</a>
+        <a class="history__back" href={url('/')} aria-label="Torna al tachimetro">‹</a>
         <h1>Storico</h1>
         {trips && trips.length > 0 && (
           <span class="history__total">

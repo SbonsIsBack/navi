@@ -1,11 +1,15 @@
 ---
 import '@/styles/themes.css';
+import { url } from '@/lib/paths';
 
 interface Props {
   title?: string;
 }
 
 const { title = 'Navi' } = Astro.props;
+
+// Gli asset statici seguono il base path (radice in dev, /navi/ su Pages).
+// `url()` normalizza la barra: `BASE_URL` arriva senza quella finale.
 ---
 
 <!doctype html>
@@ -21,9 +25,9 @@ const { title = 'Navi' } = Astro.props;
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href={url('/favicon.svg')} />
+    <link rel="apple-touch-icon" href={url('/icons/icon-192.png')} />
+    <link rel="manifest" href={url('/manifest.webmanifest')} />
     <title>{title}</title>
   </head>
   <body>

@@ -6,9 +6,16 @@
 
 ## 📌 Task attualmente in lavorazione
 
-**Nessuno: roadmap completata.** Tutte e 7 le fasi sono chiuse e verificate.
-Da qui in avanti si lavora su estensioni, non più sul piano originale — vedi
-"Prossimi passi possibili" in fondo.
+**Nessuno: roadmap completata e app pubblicata.** Tutte e 7 le fasi sono chiuse
+e verificate; il deploy su GitHub Pages è configurato.
+
+⚠️ **La validazione che manca**: l'app non è mai stata provata su un telefono
+con un chip GPS reale. Tutti i test usano la geolocalizzazione simulata di
+Playwright, che **non fornisce `coords.speed`** — quindi il ramo Doppler del
+calcolo velocità non è mai stato eseguito, solo quello di fallback (derivata
+haversine). Le soglie (raggio di trigger 60 m, anti-drift, filtri di qualità)
+sono ragionate ma tarate su dati sintetici. Il prossimo passo concordato è
+attendere una guida reale e ritarare su quella.
 
 ## 🏗️ Decisioni architetturali
 
@@ -42,6 +49,9 @@ Da qui in avanti si lavora su estensioni, non più sul piano originale — vedi
 | Login federati | `signInWithProvider` lancia un errore esplicito invece di simulare l'accesso | Sign in with Apple e Google restituiscono un token che **deve** essere verificato lato server contro le chiavi pubbliche del provider. Un finto login che crea un profilo locale darebbe l'illusione di un'identità verificata. Meglio un flusso predisposto e onestamente etichettato "prossimamente". |
 | Coordinate live | Pattern **outbox**: si accoda sempre in locale con `syncState`, un adattatore drena | Permette di aggiungere il cloud senza toccare né il motore GPS né il registratore. `localOnlyAdapter` non invia nulla e non finge di farlo: la coda resta un archivio locale invece che una perdita di dati silenziosa. |
 | Avatar | Emoji + colore, oppure foto ridimensionata a 128 px come data URL nel DB | Nessun CDN e nessun upload: l'avatar deve esserci anche in Airplane Mode. Una foto da fotocamera intatta gonfierebbe IndexedDB di megabyte per un'immagine mostrata a 72 px. |
+| Hosting | **GitHub Pages** con base path `/navi` | Gratuito e già collegato al repository. Il sottopercorso però obbliga a rendere consapevoli del base path manifest, scope del service worker, icone e link interni: da qui l'helper `url()` in `src/lib/paths.ts`, unica fonte di verità per i percorsi. |
+| `navigateFallback` senza barra finale | `/navi`, non `/navi/` | La home finisce in precache come `/navi`: legare il fallback a `/navi/` cercherebbe una chiave inesistente e **farebbe fallire ogni navigazione offline**. Trovato provando la build sotto il sottopercorso reale, non sarebbe emerso da un build verde. |
+| `.nojekyll` | File vuoto in `public/` | GitHub Pages passa il sito da Jekyll, che scarta le cartelle con underscore: senza, `_astro/` — cioè tutto il JavaScript e il CSS — verrebbe rimosso dalla pubblicazione. |
 | Isolamento dell'effect | `untracked(() => batch(() => onFix(fix)))` | `onFix` legge e riscrive gli stessi signal: senza `untracked` l'effect si auto-invalida ("Cycle detected") e **interrompe l'elaborazione a metà**, saltando del tutto il rilevamento dei varchi. |
 
 ## 🗺️ Roadmap
@@ -185,6 +195,9 @@ tratta e conserva lo storico dei viaggi, senza alcun backend.
 
 Nessuno di questi è necessario: l'app è completa e funzionante così.
 
+0. **Prova su strada** (il vero prossimo passo): installare la PWA sul telefono,
+   censire un paio di varchi veri e guidare una tratta. Serve a validare il ramo
+   Doppler mai eseguito e a ritarare le soglie su dati reali.
 1. **Backend ExpressJS** per chiudere i due soli buchi che il browser non può
    colmare da solo: verifica dei token Apple/Google e ricezione delle posizioni
    live. Innesto: implementare `SyncAdapter` e sostituire il corpo di

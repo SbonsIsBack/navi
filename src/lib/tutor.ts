@@ -171,7 +171,7 @@ function passFrom(watch: GateWatch, minFix: Fix, minDistance: number): PassEvent
  * di rumore: da fermo il GPS deriva di qualche metro e senza questo filtro
  * un'auto in coda accumulerebbe chilometri fantasma.
  */
-function travelledBetween(a: Fix, b: Fix): number {
+export function travelledBetween(a: Fix, b: Fix): number {
   const d = distanceMeters(a, b);
   return d < noiseFloorFor(b.accuracy) ? 0 : d;
 }

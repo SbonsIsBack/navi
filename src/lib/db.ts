@@ -59,10 +59,60 @@ export interface Gate {
   updatedAt: number;
 }
 
+/** Un viaggio: una sessione di tracking, dall'avvio all'arresto del GPS. */
+export interface Trip {
+  id?: number;
+  startedAt: number;
+  /** `null` finché il viaggio è in corso (o se l'app è stata chiusa). */
+  endedAt: number | null;
+  distanceM: number;
+  maxSpeedKmh: number;
+  /** Media sull'intero viaggio, calcolata alla chiusura. */
+  avgSpeedKmh: number;
+  /**
+   * Firma del percorso: i varchi attraversati in ordine, uniti da "›".
+   * Precalcolata alla chiusura del viaggio perché è la chiave con cui lo
+   * storico raggruppa i tragitti ripetuti.
+   */
+  routeKey: string;
+}
+
+/** Passaggio sotto un varco durante un viaggio. */
+export interface Checkpoint {
+  id?: number;
+  tripId: number;
+  gateId: number;
+  gateName: string;
+  /** Orario esatto del transito. */
+  t: number;
+  /** Velocità istantanea al passaggio. */
+  speedKmh: number;
+  /** Quanto è stato "centrato" il varco, in metri. */
+  offsetM: number;
+}
+
+/** Tratta fra due varchi completata durante un viaggio. */
+export interface TripSegment {
+  id?: number;
+  tripId: number;
+  fromGateId: number;
+  fromGateName: string;
+  toGateId: number;
+  toGateName: string;
+  startedAt: number;
+  endedAt: number;
+  distanceM: number;
+  averageKmh: number;
+  speedLimit: number | null;
+}
+
 export class NaviDB extends Dexie {
   fixes!: Table<Fix, number>;
   settings!: Table<Setting, string>;
   gates!: Table<Gate, number>;
+  trips!: Table<Trip, number>;
+  checkpoints!: Table<Checkpoint, number>;
+  segments!: Table<TripSegment, number>;
 
   constructor() {
     super('navi');
@@ -74,6 +124,13 @@ export class NaviDB extends Dexie {
     // prossimità con una range query prima del calcolo delle distanze.
     this.version(2).stores({
       gates: '++id, lat, updatedAt, name',
+    });
+    // v3: storico viaggi. `startedAt` ordina la vista per giorni, `routeKey`
+    // raggruppa i tragitti ripetuti, `tripId` lega checkpoint e tratte.
+    this.version(3).stores({
+      trips: '++id, startedAt, endedAt, routeKey',
+      checkpoints: '++id, tripId, t, gateId',
+      segments: '++id, tripId, startedAt',
     });
   }
 }

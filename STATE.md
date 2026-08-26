@@ -6,8 +6,8 @@
 
 ## 📌 Task attualmente in lavorazione
 
-**Nessuno.** Fase 5 completata; in attesa di autorizzazione per iniziare la Fase 6
-(Storico e Tracciamento Viaggi).
+**Nessuno.** Fase 6 completata; in attesa di autorizzazione per iniziare la Fase 7
+(Auth Mock e Modelli Social).
 
 ## 🏗️ Decisioni architetturali
 
@@ -33,6 +33,10 @@
 | Raggio di trigger | 60 m (contro i 6 m della normalizzazione) | A 145 km/h si percorrono ~40 m per fix: un raggio stretto verrebbe scavalcato tra due rilevazioni. A 60 m ci sono sempre almeno 2-3 fix dentro la zona. Non è stato allargato oltre per non far scattare i varchi su strade parallele di servizio. |
 | Uscita dalla zona = transito | Se si esce dal raggio con un minimo registrato e non ancora consumato, il passaggio viene emesso in quel momento | **Bug trovato dai test**: a 145 km/h il primo fix dopo il minimo è già oltre i 60 m, quindi il ramo di reset cancellava la sorveglianza prima della conferma e il varco d'uscita non veniva mai rilevato. |
 | Simmetria apertura/chiusura tratta | All'apertura si **sommano** i metri percorsi dal transito al fix corrente; alla chiusura si **sottraggono** | Il transito è confermato 1-2 fix dopo il punto di minimo, ma il cronometro parte e si ferma all'istante del transito. Senza le due correzioni la media era prima sottostimata (145→133), poi sovrastimata (150→162). |
+| Un viaggio = una sessione di tracking | `startTrip()` all'avvio del GPS, `endTrip()` all'arresto | È il confine "Inizio-Fine" che l'utente controlla davvero, senza euristiche sul veicolo fermo che sbaglierebbero in coda o al semaforo. |
+| Frequenza di salvataggio | Viaggio riscritto ogni 10 fix; **checkpoint scritti subito** | Aggiornare la riga del viaggio a ogni fix sarebbero migliaia di scritture all'ora per un dato che nessuno sta guardando. Orario e velocità sotto un varco invece non si possono ricostruire a posteriori, quindi si persistono all'istante. |
+| Viaggi orfani | Chiusi all'avvio sull'ultimo checkpoint registrato | Se l'app viene chiusa durante il tracking nessuno esegue `endTrip()`: senza questa bonifica quei viaggi resterebbero per sempre "in corso". |
+| Chiave di percorso | `routeKey` = varchi attraversati in ordine, precalcolata alla chiusura | Rende il raggruppamento "Percorsi" una lettura di campo indicizzato invece di una ricostruzione dai checkpoint a ogni apertura dello storico. |
 | Isolamento dell'effect | `untracked(() => batch(() => onFix(fix)))` | `onFix` legge e riscrive gli stessi signal: senza `untracked` l'effect si auto-invalida ("Cycle detected") e **interrompe l'elaborazione a metà**, saltando del tutto il rilevamento dei varchi. |
 
 ## 🗺️ Roadmap
@@ -85,9 +89,13 @@
 - [x] Riquadro di esito della tratta conclusa, visibile anche mentre la successiva è già in corso
 - [x] Verifica end-to-end a 1 Hz (fix reali in autostrada): guida a 110 km/h → media **110**; a 150 km/h → media **150**, flag di superamento corretto
 
-### Fase 6: Storico e Tracciamento Viaggi ⬜
-- [ ] Salvataggio tragitti (Inizio-Fine) e checkpoint (orario + velocità al passaggio) su IndexedDB
-- [ ] Pagina "Storico" con raggruppamento per Giorni e Percorsi
+### Fase 6: Storico e Tracciamento Viaggi ✅
+- [x] Schema DB v3: tabelle `trips` (Inizio-Fine), `checkpoints` (orario e velocità sotto ogni varco) e `segments` (tratte Tutor completate)
+- [x] Registratore (`src/lib/recorder.ts`): un viaggio per sessione di tracking, distanza e velocità massima accumulate, checkpoint scritti subito
+- [x] Chiusura automatica dei viaggi orfani lasciati aperti da sessioni interrotte
+- [x] Modulo di lettura (`src/lib/history.ts`) con raggruppamento per **Giorni** e per **Percorsi** (chiave `routeKey` precalcolata)
+- [x] Pagina `/storico` con le due viste, schede viaggio espandibili, eliminazione viaggio a cascata
+- [x] Verifica end-to-end: 2 viaggi su 3 varchi → checkpoint con orari esatti e 140 km/h a ogni transito, 2 tratte per viaggio con media corretta, raggruppamento del percorso ripetuto, persistenza dopo reload
 
 ### Fase 7: Auth Mock e Modelli Social ⬜
 - [ ] Utente "Test" locale fittizio (bypassabile)
@@ -125,10 +133,10 @@
   lo ripristina da localStorage prima dell'idratazione (niente flash).
 - Il display a 7 segmenti è SVG puro (`SevenSegment.tsx`): nessun webfont da
   scaricare, resa identica offline.
-- **Schema DB**: le tabelle dei varchi Tutor (Fase 4) e di viaggi/checkpoint
-  (Fase 6) si aggiungono in `src/lib/db.ts` con `.version(2).stores({...})`;
-  Dexie migra da solo i database già presenti sui device. Non modificare la
-  `version(1)` esistente.
+- **Schema DB**: siamo alla `version(3)` in `src/lib/db.ts` (v1 fix/settings,
+  v2 varchi, v3 viaggi/checkpoint/tratte). Nuove tabelle si aggiungono con una
+  `.version(4).stores({...})`: Dexie migra da solo i database già sui device.
+  Non modificare le versioni esistenti.
 - **Filtri GPS** in `FILTERS` (`src/lib/gps.ts`): accuratezza max 100 m, velocità
   implausibile oltre 400 km/h, soglia fermo 1.5 km/h (Doppler), segnale
   considerato perso dopo 5 s senza fix. In galleria la UI mostra "Segnale perso"
@@ -144,12 +152,14 @@
 - La cattura GPS riusa `lastFix` se fresco (< 3 s), altrimenti fa un
   `getCurrentPosition` una tantum: premendo il pulsante a 130 km/h non si può
   aspettare l'aggancio del segnale.
-- **Il motore Tutor tiene la tratta solo in memoria.** La Fase 6 dovrà
-  persistere su IndexedDB sia i `PassEvent` (checkpoint: orario e velocità
-  sotto ogni varco) sia i `CompletedSegment`, e valutare il salvataggio della
-  tratta in corso per sopravvivere alla chiusura dell'app durante un viaggio.
-  I tipi `PassEvent` e `CompletedSegment` in `src/lib/tutor.ts` sono già la
-  forma giusta da salvare.
+- Il registratore è **downstream** del motore Tutor: si limita a osservare i
+  signal `lastFix`, `lastPass` e `lastCompleted` e a scriverli su IndexedDB.
+  Il motore non sa che esiste, quindi resta testabile da solo.
+- La **tratta in corso** vive ancora solo in memoria: se l'app viene chiusa a
+  metà di una tratta Tutor, il viaggio viene chiuso correttamente (con i suoi
+  checkpoint) ma la tratta aperta si perde. Persisterla richiederebbe di
+  salvare `activeSegment` nei `settings` a ogni fix; valutare se ne vale il
+  costo in scritture.
 - `loadGatesIntoEngine()` va richiamata quando i varchi cambiano: oggi basta il
   mount della Dashboard perché `/varchi` è una pagina separata (navigare
   indietro rimonta l'island e ricarica i varchi).

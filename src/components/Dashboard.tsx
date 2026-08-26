@@ -5,6 +5,7 @@ import { pruneOldFixes } from '@/lib/db';
 import { stopGps } from '@/lib/gps';
 import { releaseWakeLock } from '@/lib/wakelock';
 import { startTutorEngine, loadGatesIntoEngine, resetTutorEngine } from '@/lib/tutor';
+import { startRecorder, startTrip, endTrip, closeOrphanTrips } from '@/lib/recorder';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import { MockControls } from './MockControls';
 import { GpsStatusBar } from './GpsStatusBar';
@@ -18,6 +19,9 @@ export default function Dashboard() {
   useEffect(() => {
     startSpeedLoop();
     const stopEngine = startTutorEngine();
+    const stopRec = startRecorder();
+    // Un viaggio lasciato aperto da una sessione interrotta va chiuso.
+    void closeOrphanTrips().catch(() => {});
     void loadGatesIntoEngine().then(setGateCount);
     // Potatura all'avvio: tiene il DB in salute senza intervento dell'utente.
     void pruneOldFixes(7).catch(() => {});
@@ -25,7 +29,9 @@ export default function Dashboard() {
     return () => {
       stopSpeedLoop();
       stopEngine();
+      stopRec();
       stopGps();
+      void endTrip().catch(() => {});
       void releaseWakeLock();
     };
   }, []);
@@ -51,10 +57,20 @@ export default function Dashboard() {
       </main>
 
       <footer class="dashboard__footer">
-        <TrackingButton onStart={resetTutorEngine} onStop={resetTutorEngine} />
-        <a class="nav-link" href="/varchi">
-          VARCHI TUTOR
-        </a>
+        <TrackingButton
+          onStart={() => {
+            resetTutorEngine();
+            void startTrip().catch(() => {});
+          }}
+          onStop={() => {
+            void endTrip().catch(() => {});
+            resetTutorEngine();
+          }}
+        />
+        <div class="dashboard__nav">
+          <a class="nav-link" href="/varchi">VARCHI TUTOR</a>
+          <a class="nav-link" href="/storico">STORICO</a>
+        </div>
       </footer>
 
       <MockControls />

@@ -3,10 +3,18 @@ import { signal } from '@preact/signals';
 /** Fondo scala dei tachimetri (km/h). */
 export const MAX_SPEED = 240;
 
+/** Sorgente che alimenta `rawSpeed`. */
+export type SpeedSource = 'mock' | 'gps';
+
 /**
- * Velocità grezza dalla sorgente attiva (km/h).
- * Oggi è alimentata dal mock (slider / demo drive); in Fase 3 la scriverà
- * il provider GPS attraverso questa stessa interfaccia.
+ * Sorgente attiva. Il mock scrive `rawSpeed` solo quando vale `'mock'`,
+ * il provider GPS solo quando vale `'gps'`: mai entrambe insieme.
+ */
+export const speedSource = signal<SpeedSource>('mock');
+
+/**
+ * Velocità grezza dalla sorgente attiva (km/h): mock (slider / demo drive)
+ * oppure provider GPS. Chi la scrive non deve preoccuparsi dello smoothing.
  */
 export const rawSpeed = signal(0);
 
@@ -40,7 +48,7 @@ function tick(ts: number) {
   const dt = Math.min(0.1, (ts - lastTs) / 1000);
   lastTs = ts;
 
-  if (demoMode.value) {
+  if (demoMode.value && speedSource.value === 'mock') {
     if (ts >= nextTargetAt) {
       cruiseTarget = Math.round(Math.random() * MAX_SPEED * 0.85);
       nextTargetAt =

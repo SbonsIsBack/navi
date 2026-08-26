@@ -6,8 +6,8 @@
 
 ## 📌 Task attualmente in lavorazione
 
-**Nessuno.** Fase 2 completata; in attesa di autorizzazione per iniziare la Fase 3
-(Core GPS Tracker e Database Offline).
+**Nessuno.** Fase 3 completata; in attesa di autorizzazione per iniziare la Fase 4
+(Gestione Varchi e Normalizzazione anti-cloni).
 
 ## 🏗️ Decisioni architetturali
 
@@ -20,6 +20,10 @@
 | Backend | **Nessuno** (Local First) | Tutte le feature richieste vivono lato client. Se in futuro servirà sync live (Fase 7+), candidato: ExpressJS per condividere i tipi TS col client. Decisione rimandata. |
 | Icone PWA | Generate da `scripts/generate-icons.mjs` (encoder PNG puro Node, zero dipendenze) | Riproducibili offline con `npm run icons`; include variante maskable con safe zone. |
 | Alias import | `@/*` → `src/*` | Percorsi puliti nei componenti. |
+| Sorgente velocità | `coords.speed` (Doppler GNSS) con fallback su derivata haversine | Il dato Doppler del chip è molto più stabile della derivata delle posizioni; il fallback copre desktop e browser che non lo espongono. La UI segnala quale delle due è in uso. |
+| Smoothing velocità | 3 livelli: filtro mediano su 3 campioni → smoothing esponenziale a 60fps → snap sotto 0.05 km/h | La mediana uccide il singolo picco senza il ritardo di una media; l'esponenziale rende fluido il movimento tra un fix e l'altro (il GPS emette ~1 fix/s, la UI disegna a 60fps). |
+| Rumore da fermo | Spostamento sotto `max(3 m, accuratezza × 0.5)` letto come 0 km/h | Da fermo il GPS "cammina" di qualche metro: senza questa soglia un'auto parcheggiata segnerebbe 5-10 km/h. Soglia legata all'accuratezza dichiarata dal fix. |
+| Contesa sorgenti | Signal `speedSource` (`'mock' \| 'gps'`) | Mock e GPS non possono mai scrivere insieme sul tachimetro; con GPS attivo i controlli mock si disabilitano. |
 
 ## 🗺️ Roadmap
 
@@ -40,10 +44,16 @@
 - [x] Slot UI "MEDIA TUTOR" predisposto (si popola in Fase 5)
 - [x] Verifica visiva dei 3 temi via Chromium/Playwright (screenshot) + persistenza tema dopo reload
 
-### Fase 3: Core GPS Tracker e Database Offline ⬜
-- [ ] Setup Dexie/IndexedDB per storage persistente client
-- [ ] Collegamento Web Geolocation API (`watchPosition`) alla UI
-- [ ] Calcolo velocità istantanea con smoothing (evitare sbalzi)
+### Fase 3: Core GPS Tracker e Database Offline ✅
+- [x] Setup Dexie/IndexedDB (`src/lib/db.ts`): DB `navi` v1 con tabelle `fixes` (indice su `t`) e `settings` (key/value); helper `getSetting`/`setSetting`, `pruneOldFixes`, `countFixes`
+- [x] Provider GPS (`src/lib/gps.ts`): `watchPosition` ad alta accuratezza, signal di stato (`gpsStatus`, `gpsStale`, `lastFix`, `gpsError`), persistenza best-effort di ogni fix accettato
+- [x] Calcolo velocità istantanea con smoothing a 3 livelli (vedi sotto)
+- [x] Helper geodetici (`src/lib/geo.ts`): distanza haversine e bearing — base anche per l'anti-cloni di Fase 4
+- [x] UI: barra di stato GPS (qualità fix a colori, ±metri, sorgente doppler/derivata), pulsante AVVIA/FERMA TRACKING, pannello diagnostica con conteggio fix e potatura
+- [x] Wake Lock (`src/lib/wakelock.ts`): schermo acceso durante il tracking, riacquisito al ritorno in foreground
+- [x] Verifica end-to-end con geolocalizzazione simulata (Playwright): 100 km/h simulati → 100 km/h mostrati; drift da fermo → 0 km/h; 65 fix persistiti e rileggibili dopo reload
+- [x] Verifica **Airplane Mode**: app caricata offline dal service worker con lettura dati da IndexedDB
+- [x] Verifica permesso negato: messaggio azionabile e pulsante "RIPROVA" (nessun vicolo cieco)
 
 ### Fase 4: Gestione Varchi e Normalizzazione ⬜
 - [ ] UI inserimento Tutor: coordinate manuali, click su mappa, GRANDE PULSANTE cattura GPS
@@ -70,6 +80,7 @@
 - `@vite-pwa/astro@^1` (dev) — Manifest + Service Worker Workbox
 - `typescript@^5` (dev)
 - `playwright-core` (dev) — verifica visiva headless con il Chromium di sistema (nessun download browser)
+- `dexie@^4` — wrapper IndexedDB per lo storage offline
 
 ## 🛠️ Comandi
 
@@ -92,3 +103,12 @@
   lo ripristina da localStorage prima dell'idratazione (niente flash).
 - Il display a 7 segmenti è SVG puro (`SevenSegment.tsx`): nessun webfont da
   scaricare, resa identica offline.
+- **Schema DB**: le tabelle dei varchi Tutor (Fase 4) e di viaggi/checkpoint
+  (Fase 6) si aggiungono in `src/lib/db.ts` con `.version(2).stores({...})`;
+  Dexie migra da solo i database già presenti sui device. Non modificare la
+  `version(1)` esistente.
+- **Filtri GPS** in `FILTERS` (`src/lib/gps.ts`): accuratezza max 100 m, velocità
+  implausibile oltre 400 km/h, soglia fermo 1.5 km/h (Doppler), segnale
+  considerato perso dopo 5 s senza fix. In galleria la UI mostra "Segnale perso"
+  ma **non** azzera la velocità (l'auto sta ancora viaggiando).
+- Il pannello "Diagnostica" resta utile in Fase 4+: mostra fix salvati e scartati.

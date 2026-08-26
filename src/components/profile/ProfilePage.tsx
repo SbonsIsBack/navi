@@ -21,6 +21,7 @@ import {
 } from '@/lib/sync';
 import { themeId, applyThemeToDocument } from '@/lib/themes';
 import { Avatar } from './Avatar';
+import { url } from '@/lib/paths';
 import { AvatarEditor } from './AvatarEditor';
 
 /** Profilo, accesso e predisposizione al sync. Nessuna schermata è protetta. */
@@ -50,7 +51,7 @@ export default function ProfilePage() {
   return (
     <div class="profile">
       <header class="profile__header">
-        <a class="profile__back" href="/" aria-label="Torna al tachimetro">‹</a>
+        <a class="profile__back" href={url('/')} aria-label="Torna al tachimetro">‹</a>
         <h1>Profilo</h1>
       </header>
 
@@ -88,7 +89,7 @@ export default function ProfilePage() {
             </button>
           </div>
 
-          <a class="profile__skip" href="/">Continua senza account</a>
+          <a class="profile__skip" href={url('/')}>Continua senza account</a>
         </section>
       )}
 

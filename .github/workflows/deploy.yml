@@ -1,0 +1,54 @@
+name: Deploy su GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Permette di rilanciare il deploy a mano dalla tab Actions.
+  workflow_dispatch:
+
+# Il token deve poter scrivere su Pages; `id-token` serve al deploy attestato.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Un deploy alla volta: le esecuzioni in coda vengono sostituite dall'ultima,
+# ma quella in corso viene lasciata finire per non pubblicare a metà.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Controllo dei tipi
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

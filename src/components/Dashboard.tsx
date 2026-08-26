@@ -7,6 +7,7 @@ import { releaseWakeLock } from '@/lib/wakelock';
 import { startTutorEngine, loadGatesIntoEngine, resetTutorEngine } from '@/lib/tutor';
 import { startRecorder, startTrip, endTrip, closeOrphanTrips } from '@/lib/recorder';
 import { restoreSession } from '@/lib/auth';
+import { url } from '@/lib/paths';
 import { restoreSharingPreference } from '@/lib/sync';
 import { ThemeSwitcher } from './ThemeSwitcher';
 import { MockControls } from './MockControls';
@@ -74,9 +75,9 @@ export default function Dashboard() {
           }}
         />
         <div class="dashboard__nav">
-          <a class="nav-link" href="/varchi">VARCHI</a>
-          <a class="nav-link" href="/storico">STORICO</a>
-          <a class="nav-link" href="/profilo">PROFILO</a>
+          <a class="nav-link" href={url('/varchi')}>VARCHI</a>
+          <a class="nav-link" href={url('/storico')}>STORICO</a>
+          <a class="nav-link" href={url('/profilo')}>PROFILO</a>
         </div>
       </footer>
 

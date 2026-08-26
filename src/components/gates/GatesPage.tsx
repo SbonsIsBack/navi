@@ -6,6 +6,7 @@ import { GateCapture } from './GateCapture';
 import { GateManualForm } from './GateManualForm';
 import { GateList } from './GateList';
 import { GateMap } from './GateMap';
+import { url } from '@/lib/paths';
 
 type Method = 'capture' | 'manual' | 'map';
 
@@ -31,7 +32,7 @@ export default function GatesPage() {
   return (
     <div class="gates">
       <header class="gates__header">
-        <a class="gates__back" href="/" aria-label="Torna al tachimetro">
+        <a class="gates__back" href={url('/')} aria-label="Torna al tachimetro">
           ‹
         </a>
         <h1>Varchi Tutor</h1>

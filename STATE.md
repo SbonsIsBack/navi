@@ -6,8 +6,8 @@
 
 ## 📌 Task attualmente in lavorazione
 
-**Nessuno.** Fase 3 completata; in attesa di autorizzazione per iniziare la Fase 4
-(Gestione Varchi e Normalizzazione anti-cloni).
+**Nessuno.** Fase 4 completata; in attesa di autorizzazione per iniziare la Fase 5
+(Motore Velocità Media).
 
 ## 🏗️ Decisioni architetturali
 
@@ -24,6 +24,11 @@
 | Smoothing velocità | 3 livelli: filtro mediano su 3 campioni → smoothing esponenziale a 60fps → snap sotto 0.05 km/h | La mediana uccide il singolo picco senza il ritardo di una media; l'esponenziale rende fluido il movimento tra un fix e l'altro (il GPS emette ~1 fix/s, la UI disegna a 60fps). |
 | Rumore da fermo | Spostamento sotto `max(3 m, accuratezza × 0.5)` letto come 0 km/h | Da fermo il GPS "cammina" di qualche metro: senza questa soglia un'auto parcheggiata segnerebbe 5-10 km/h. Soglia legata all'accuratezza dichiarata dal fix. |
 | Contesa sorgenti | Signal `speedSource` (`'mock' \| 'gps'`) | Mock e GPS non possono mai scrivere insieme sul tachimetro; con GPS attivo i controlli mock si disabilitano. |
+| Anti-cloni | Raggio 6 m + media pesata per **inverso della varianza** (peso = 1/accuratezza²) | Una media semplice lascerebbe che un singolo fix a ±30 m sposti un varco già misurato bene decine di volte. Con la pesatura un fix a ±3 m vale ~100 volte uno a ±30 m — il rapporto corretto per combinare due misure indipendenti. Verificato: ricattura a 4 m con ±3 m su varco a ±30 m sposta la posizione di 3.96 m su 4. |
+| Ricerca prossimità | Range query sull'indice `lat` → filtro haversine sui candidati | IndexedDB non ha query spaziali. La latitudine è l'unica dimensione con fattore di conversione costante (111.320 m/grado), quindi restringe bene prima del calcolo esatto delle distanze. |
+| Concorrenza upsert | `db.transaction('rw', ...)` attorno a ricerca + scrittura | Senza transazione due catture ravvicinate potrebbero leggere entrambe "nessun varco vicino" e creare proprio i cloni che l'algoritmo deve evitare. |
+| Mappa | Leaflet + tile OSM, import dinamico, `circleMarker` | Leaflet pesa più di tutto il resto dell'app: caricarlo solo su `/varchi` tiene leggero il tachimetro, che è la schermata che si apre in auto. I `circleMarker` evitano le icone PNG di default (asset esterni che si rompono offline). |
+| Tile offline | Workbox `runtimeCaching` CacheFirst su `tile.openstreetmap.org` (400 tile, 30 giorni) | Le tile sono infinite e non possono stare nella precache; conservarle man mano rende navigabili offline le zone già consultate. |
 
 ## 🗺️ Roadmap
 
@@ -55,10 +60,16 @@
 - [x] Verifica **Airplane Mode**: app caricata offline dal service worker con lettura dati da IndexedDB
 - [x] Verifica permesso negato: messaggio azionabile e pulsante "RIPROVA" (nessun vicolo cieco)
 
-### Fase 4: Gestione Varchi e Normalizzazione ⬜
-- [ ] UI inserimento Tutor: coordinate manuali, click su mappa, GRANDE PULSANTE cattura GPS
-- [ ] Salvataggio varchi su IndexedDB
-- [ ] Algoritmo anti-cloni (merge/media posizioni entro raggio 5-6 m)
+### Fase 4: Gestione Varchi e Normalizzazione ✅
+- [x] Pagina dedicata `/varchi` con i 3 metodi di inserimento a tab
+- [x] **GRANDE PULSANTE** circolare di cattura GPS istantanea, con feedback aptico (`navigator.vibrate`) e messaggio che dice se ha creato o fuso un varco
+- [x] Inserimento per coordinate manuali (parser tollerante virgola/punto, validazione range) + limite di velocità della tratta
+- [x] Mappa interattiva Leaflet con click-to-pick, caricata in **import dinamico** (non pesa sul tachimetro); marker `circleMarker` senza asset esterni; cerchio del raggio anti-cloni disegnato in scala reale
+- [x] Salvataggio varchi su IndexedDB (schema v2, tabella `gates`)
+- [x] Algoritmo anti-cloni (`src/lib/gates.ts`) con raggio 6 m e media pesata per inverso della varianza
+- [x] Elenco varchi con rinomina, limite di velocità ed eliminazione
+- [x] Caching runtime delle tile OSM nel service worker (zone già viste navigabili offline) + banner di degrado quando le tile mancano
+- [x] Verifica end-to-end: merge a 4 m/5 m, nuovo varco a 50 m, anti-cloni **cross-metodo** (manuale e mappa confluiscono in un varco GPS), validazione coordinate
 
 ### Fase 5: Motore Velocità Media ⬜
 - [ ] Trigger ingresso varco → avvio calcolo media in tempo reale
@@ -81,6 +92,7 @@
 - `typescript@^5` (dev)
 - `playwright-core` (dev) — verifica visiva headless con il Chromium di sistema (nessun download browser)
 - `dexie@^4` — wrapper IndexedDB per lo storage offline
+- `leaflet@^1` + `@types/leaflet` (dev) — mappa interattiva (caricata solo su `/varchi`)
 
 ## 🛠️ Comandi
 
@@ -112,3 +124,13 @@
   considerato perso dopo 5 s senza fix. In galleria la UI mostra "Segnale perso"
   ma **non** azzera la velocità (l'auto sta ancora viaggiando).
 - Il pannello "Diagnostica" resta utile in Fase 4+: mostra fix salvati e scartati.
+- **I varchi hanno già il campo `speedLimit`**: la Fase 5 può leggerlo senza
+  migrazioni di schema. Il motore della media dovrà usare `findNearbyGate()`
+  (già pronto e testato) per rilevare l'ingresso in un varco, con un raggio di
+  trigger più largo di `CLONE_RADIUS_M` — a 130 km/h si percorrono ~36 m al
+  secondo, quindi il raggio di 6 m usato per la normalizzazione verrebbe
+  mancato tra un fix e l'altro. Valutare ~50 m più il controllo del passaggio
+  effettivo (distanza che smette di diminuire).
+- La cattura GPS riusa `lastFix` se fresco (< 3 s), altrimenti fa un
+  `getCurrentPosition` una tantum: premendo il pulsante a 130 km/h non si può
+  aspettare l'aggancio del segnale.

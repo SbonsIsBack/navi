@@ -48,6 +48,9 @@ export default function Dashboard() {
 
       <footer class="dashboard__footer">
         <TrackingButton />
+        <a class="nav-link" href="/varchi">
+          VARCHI TUTOR
+        </a>
       </footer>
 
       <MockControls />

@@ -195,3 +195,56 @@ export function stopGps(): void {
 export function isGpsRunning(): boolean {
   return watchId !== null;
 }
+
+export interface CapturedPoint {
+  lat: number;
+  lon: number;
+  accuracy: number;
+  t: number;
+}
+
+/** Un fix più vecchio di così non descrive più dove siamo adesso. */
+const CAPTURE_MAX_AGE_MS = 3000;
+
+/**
+ * Scatto istantaneo della posizione, per il pulsante di cattura sotto il varco.
+ *
+ * Se il tracking è già attivo riusa l'ultimo fix (immediato, nessuna attesa
+ * mentre si passa a 130 km/h); altrimenti chiede una posizione una tantum.
+ */
+export function captureCurrentPosition(): Promise<CapturedPoint> {
+  const fix = lastFix.value;
+  if (fix && Date.now() - fix.t < CAPTURE_MAX_AGE_MS) {
+    return Promise.resolve({
+      lat: fix.lat,
+      lon: fix.lon,
+      accuracy: fix.accuracy,
+      t: fix.t,
+    });
+  }
+
+  return new Promise((resolve, reject) => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      reject(new Error('Geolocalizzazione non supportata da questo browser.'));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) =>
+        resolve({
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude,
+          accuracy: pos.coords.accuracy ?? -1,
+          t: pos.timestamp,
+        }),
+      (err) =>
+        reject(
+          new Error(
+            err.code === err.PERMISSION_DENIED
+              ? 'Permesso di posizione negato.'
+              : 'Posizione non disponibile: segnale assente.',
+          ),
+        ),
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 },
+    );
+  });
+}

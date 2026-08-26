@@ -34,15 +34,46 @@ export interface Setting<T = unknown> {
   value: T;
 }
 
+/** Come è stata censita la posizione di un varco. */
+export type GateSource = 'gps' | 'manual' | 'map';
+
+/** Un varco Tutor censito dall'utente. */
+export interface Gate {
+  id?: number;
+  name: string;
+  lat: number;
+  lon: number;
+  /** Quante rilevazioni concorrono alla posizione corrente. */
+  samples: number;
+  /**
+   * Peso statistico accumulato (somma di 1/accuratezza²): serve alla media
+   * pesata dell'anti-cloni, vedi `src/lib/gates.ts`.
+   */
+  weight: number;
+  /** Migliore accuratezza osservata, in metri. */
+  bestAccuracy: number;
+  /** Limite di velocità della tratta in km/h (usato dal motore di Fase 5). */
+  speedLimit: number | null;
+  source: GateSource;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export class NaviDB extends Dexie {
   fixes!: Table<Fix, number>;
   settings!: Table<Setting, string>;
+  gates!: Table<Gate, number>;
 
   constructor() {
     super('navi');
     this.version(1).stores({
       fixes: '++id, t',
       settings: 'key',
+    });
+    // v2: varchi Tutor. `lat` è indicizzato per restringere la ricerca di
+    // prossimità con una range query prima del calcolo delle distanze.
+    this.version(2).stores({
+      gates: '++id, lat, updatedAt, name',
     });
   }
 }

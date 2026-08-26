@@ -421,6 +421,417 @@
   cursor: not-allowed;
 }
 
+.dashboard__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.nav-link {
+  display: block;
+  text-align: center;
+  padding: 0.6rem;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-dim);
+  text-decoration: none;
+  font-size: 0.78rem;
+  letter-spacing: 0.15em;
+}
+
+/* ============================================================
+   Pagina Varchi Tutor
+   ============================================================ */
+
+.gates {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-bottom: 2rem;
+}
+
+.gates__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem 0;
+}
+
+.gates__header h1 {
+  font-size: 1.1rem;
+  letter-spacing: 0.1em;
+  flex: 1;
+}
+
+.gates__back {
+  font-size: 1.8rem;
+  line-height: 1;
+  color: var(--color-accent);
+  text-decoration: none;
+  padding: 0 0.4rem;
+}
+
+.gates__count {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.15rem 0.65rem;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-dim);
+}
+
+.gates__tabs {
+  display: flex;
+  gap: 2px;
+  margin: 0 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 3px;
+}
+
+.gates__tab {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-dim);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.gates__tab--on {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-weight: 600;
+}
+
+.gates__panel {
+  padding: 0 1rem;
+}
+
+.gates__saved {
+  padding: 0 1rem;
+}
+
+.gates__saved h2 {
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  color: var(--color-text-dim);
+  text-transform: uppercase;
+  margin-bottom: 0.6rem;
+}
+
+/* ---- Cattura GPS ---- */
+
+.capture {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 0;
+}
+
+.capture__btn {
+  width: min(70vw, 260px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 3px solid var(--color-accent);
+  background: var(--color-surface);
+  color: var(--color-accent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  box-shadow: 0 0 0 0 var(--color-accent);
+  transition: transform 0.1s, box-shadow 0.3s;
+}
+
+.capture__btn:active {
+  transform: scale(0.96);
+}
+
+.capture__btn[data-phase='capturing'] {
+  animation: capture-pulse 1s ease-out infinite;
+}
+
+@keyframes capture-pulse {
+  from {
+    box-shadow: 0 0 0 0 rgba(46, 230, 166, 0.5);
+  }
+  to {
+    box-shadow: 0 0 0 24px rgba(46, 230, 166, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .capture__btn[data-phase='capturing'] {
+    animation: none;
+  }
+}
+
+.capture__icon {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.capture__label {
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 0 1.5rem;
+}
+
+.capture__hint {
+  font-size: 0.8rem;
+  color: var(--color-text-dim);
+  text-align: center;
+  max-width: 34ch;
+  line-height: 1.5;
+}
+
+.capture__msg,
+.gate-form__msg {
+  font-size: 0.82rem;
+  text-align: center;
+  line-height: 1.5;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  max-width: 40ch;
+}
+
+.capture__msg[data-kind='ok'],
+.gate-form__msg[data-kind='ok'] {
+  background: rgba(46, 230, 166, 0.12);
+  color: var(--color-accent);
+}
+
+.capture__msg[data-kind='err'],
+.gate-form__msg[data-kind='err'] {
+  background: rgba(255, 90, 82, 0.12);
+  color: #ff8b83;
+}
+
+/* ---- Form coordinate ---- */
+
+.gate-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 0;
+}
+
+.gate-form__row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.gate-form__row .gate-form__field {
+  flex: 1;
+  min-width: 0;
+}
+
+.gate-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.gate-form__field span {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--color-text-dim);
+  text-transform: uppercase;
+}
+
+.gate-form__field input {
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 1rem;
+  padding: 0.6rem 0.75rem;
+}
+
+.gate-form__field input:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -1px;
+}
+
+.gate-form__submit {
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 0.8rem;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+/* ---- Mappa ---- */
+
+.gate-map {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 1rem;
+}
+
+.gate-map__canvas {
+  height: min(45dvh, 340px);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.gate-map__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.75rem;
+  color: var(--color-text-dim);
+}
+
+.gate-map__bar button {
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-dim);
+  font: inherit;
+  font-size: 0.75rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.gate-map__coords {
+  font-variant-numeric: tabular-nums;
+}
+
+.gate-map__offline {
+  font-size: 0.75rem;
+  color: #ffc23d;
+  line-height: 1.5;
+}
+
+/* Leaflet usa il bianco di default: lo riallineiamo al tema scuro. */
+.gate-map .leaflet-container {
+  background: var(--color-surface);
+  font-family: var(--font-ui);
+}
+
+.gate-map .leaflet-control-attribution {
+  background: rgba(0, 0, 0, 0.6);
+  color: var(--color-text-dim);
+}
+
+.gate-map .leaflet-control-attribution a {
+  color: var(--color-text-dim);
+}
+
+/* ---- Elenco varchi ---- */
+
+.gate-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.gate-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
+}
+
+.gate-item__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.gate-item__name {
+  font-size: 0.95rem;
+}
+
+.gate-item__coords {
+  font-size: 0.75rem;
+  color: var(--color-text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.gate-item__meta {
+  font-size: 0.7rem;
+  color: var(--color-text-dim);
+}
+
+.gate-item__actions {
+  display: flex;
+  gap: 0.35rem;
+  flex: none;
+}
+
+.gate-item__actions button {
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-dim);
+  font: inherit;
+  font-size: 0.72rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.gate-item__actions button.danger {
+  color: #ff8b83;
+  border-color: rgba(255, 139, 131, 0.4);
+}
+
+.gate-item__edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.gate-item__edit input {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.45rem 0.6rem;
+}
+
+.gate-empty {
+  font-size: 0.85rem;
+  color: var(--color-text-dim);
+  text-align: center;
+  padding: 1.5rem 0;
+  line-height: 1.5;
+}
+
 /* ============================================================
    Pannello mock (dev)
    ============================================================ */

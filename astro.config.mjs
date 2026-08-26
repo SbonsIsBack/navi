@@ -40,6 +40,20 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2,webmanifest}'],
         navigateFallback: '/',
         cleanupOutdatedCaches: true,
+        runtimeCaching: [
+          {
+            // Le tile della mappa non possono stare nella precache (sono
+            // infinite): le conserviamo man mano che vengono viste, così le
+            // zone già consultate restano navigabili anche senza rete.
+            urlPattern: /^https:\/\/[a-c]\.tile\.openstreetmap\.org\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'osm-tiles',
+              expiration: { maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
       },
       devOptions: {
         enabled: false,

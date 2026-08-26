@@ -6,8 +6,8 @@
 
 ## 📌 Task attualmente in lavorazione
 
-**Nessuno.** Fase 4 completata; in attesa di autorizzazione per iniziare la Fase 5
-(Motore Velocità Media).
+**Nessuno.** Fase 5 completata; in attesa di autorizzazione per iniziare la Fase 6
+(Storico e Tracciamento Viaggi).
 
 ## 🏗️ Decisioni architetturali
 
@@ -29,6 +29,11 @@
 | Concorrenza upsert | `db.transaction('rw', ...)` attorno a ricerca + scrittura | Senza transazione due catture ravvicinate potrebbero leggere entrambe "nessun varco vicino" e creare proprio i cloni che l'algoritmo deve evitare. |
 | Mappa | Leaflet + tile OSM, import dinamico, `circleMarker` | Leaflet pesa più di tutto il resto dell'app: caricarlo solo su `/varchi` tiene leggero il tachimetro, che è la schermata che si apre in auto. I `circleMarker` evitano le icone PNG di default (asset esterni che si rompono offline). |
 | Tile offline | Workbox `runtimeCaching` CacheFirst su `tile.openstreetmap.org` (400 tile, 30 giorni) | Le tile sono infinite e non possono stare nella precache; conservarle man mano rende navigabili offline le zone già consultate. |
+| Rilevamento transito | Punto di **massima vicinanza** (la distanza smette di calare e risale), non "sono entrato nel raggio" | Dà l'istante del transito con la precisione del singolo fix, indipendentemente da quanto è largo il raggio di trigger. |
+| Raggio di trigger | 60 m (contro i 6 m della normalizzazione) | A 145 km/h si percorrono ~40 m per fix: un raggio stretto verrebbe scavalcato tra due rilevazioni. A 60 m ci sono sempre almeno 2-3 fix dentro la zona. Non è stato allargato oltre per non far scattare i varchi su strade parallele di servizio. |
+| Uscita dalla zona = transito | Se si esce dal raggio con un minimo registrato e non ancora consumato, il passaggio viene emesso in quel momento | **Bug trovato dai test**: a 145 km/h il primo fix dopo il minimo è già oltre i 60 m, quindi il ramo di reset cancellava la sorveglianza prima della conferma e il varco d'uscita non veniva mai rilevato. |
+| Simmetria apertura/chiusura tratta | All'apertura si **sommano** i metri percorsi dal transito al fix corrente; alla chiusura si **sottraggono** | Il transito è confermato 1-2 fix dopo il punto di minimo, ma il cronometro parte e si ferma all'istante del transito. Senza le due correzioni la media era prima sottostimata (145→133), poi sovrastimata (150→162). |
+| Isolamento dell'effect | `untracked(() => batch(() => onFix(fix)))` | `onFix` legge e riscrive gli stessi signal: senza `untracked` l'effect si auto-invalida ("Cycle detected") e **interrompe l'elaborazione a metà**, saltando del tutto il rilevamento dei varchi. |
 
 ## 🗺️ Roadmap
 
@@ -71,9 +76,14 @@
 - [x] Caching runtime delle tile OSM nel service worker (zone già viste navigabili offline) + banner di degrado quando le tile mancano
 - [x] Verifica end-to-end: merge a 4 m/5 m, nuovo varco a 50 m, anti-cloni **cross-metodo** (manuale e mappa confluiscono in un varco GPS), validazione coordinate
 
-### Fase 5: Motore Velocità Media ⬜
-- [ ] Trigger ingresso varco → avvio calcolo media in tempo reale
-- [ ] UI velocità media vs limite della tratta
+### Fase 5: Motore Velocità Media ✅
+- [x] Motore Tutor (`src/lib/tutor.ts`): rilevamento transito per **punto di massima vicinanza**, raggio di trigger 60 m
+- [x] Apertura tratta al transito, accumulo distanza filtrata, media in tempo reale
+- [x] Tratte **concatenate**: il varco che chiude una tratta apre subito la successiva
+- [x] UI `AverageSpeedPanel`: media grande, limite, scarto ±, cronometro, km percorsi, orario e velocità di transito
+- [x] Stati cromatici rispetto al limite: `ok` / `warn` (entro 5 km/h) / `over`
+- [x] Riquadro di esito della tratta conclusa, visibile anche mentre la successiva è già in corso
+- [x] Verifica end-to-end a 1 Hz (fix reali in autostrada): guida a 110 km/h → media **110**; a 150 km/h → media **150**, flag di superamento corretto
 
 ### Fase 6: Storico e Tracciamento Viaggi ⬜
 - [ ] Salvataggio tragitti (Inizio-Fine) e checkpoint (orario + velocità al passaggio) su IndexedDB
@@ -134,3 +144,12 @@
 - La cattura GPS riusa `lastFix` se fresco (< 3 s), altrimenti fa un
   `getCurrentPosition` una tantum: premendo il pulsante a 130 km/h non si può
   aspettare l'aggancio del segnale.
+- **Il motore Tutor tiene la tratta solo in memoria.** La Fase 6 dovrà
+  persistere su IndexedDB sia i `PassEvent` (checkpoint: orario e velocità
+  sotto ogni varco) sia i `CompletedSegment`, e valutare il salvataggio della
+  tratta in corso per sopravvivere alla chiusura dell'app durante un viaggio.
+  I tipi `PassEvent` e `CompletedSegment` in `src/lib/tutor.ts` sono già la
+  forma giusta da salvare.
+- `loadGatesIntoEngine()` va richiamata quando i varchi cambiano: oggi basta il
+  mount della Dashboard perché `/varchi` è una pagina separata (navigare
+  indietro rimonta l'island e ricarica i varchi).

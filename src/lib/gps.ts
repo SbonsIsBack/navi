@@ -33,6 +33,16 @@ const FILTERS = {
   staleAfterS: 5,
 };
 
+/**
+ * Soglia sotto la quale uno spostamento è rumore e non movimento reale.
+ * Esportata perché il motore Tutor deve integrare le distanze con lo stesso
+ * criterio con cui qui si decide che il veicolo è fermo.
+ */
+export function noiseFloorFor(accuracy: number): number {
+  const acc = accuracy > 0 ? accuracy : FILTERS.maxAccuracyM;
+  return Math.max(3, acc * 0.5);
+}
+
 let watchId: number | null = null;
 let staleTimer: number | null = null;
 let prev: { lat: number; lon: number; t: number } | null = null;
@@ -83,7 +93,7 @@ function speedFromFix(pos: GeolocationPosition): { kmh: number; doppler: boolean
     const dist = distanceMeters(prev, { lat, lon });
     // Uno spostamento più piccolo dell'incertezza della misura è rumore,
     // non movimento: da fermo il GPS "cammina" di qualche metro.
-    const noiseFloor = Math.max(3, acc * 0.5);
+    const noiseFloor = noiseFloorFor(acc);
     candidate = dist < noiseFloor ? 0 : (dist / dt) * MS_TO_KMH;
     doppler = false;
   } else {

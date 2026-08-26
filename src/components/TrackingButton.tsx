@@ -1,8 +1,13 @@
 import { gpsStatus, startGps, stopGps, isGpsRunning } from '@/lib/gps';
 import { requestWakeLock, releaseWakeLock } from '@/lib/wakelock';
 
+interface Props {
+  onStart?: () => void;
+  onStop?: () => void;
+}
+
 /** Avvio/arresto del tracking. Pollice-raggiungibile, stato sempre esplicito. */
-export function TrackingButton() {
+export function TrackingButton({ onStart, onStop }: Props = {}) {
   const status = gpsStatus.value;
   const running = status === 'requesting' || status === 'active' || status === 'error';
   // Solo l'assenza dell'API è definitiva: dopo un rifiuto l'utente può
@@ -13,7 +18,11 @@ export function TrackingButton() {
     if (isGpsRunning()) {
       stopGps();
       void releaseWakeLock();
+      onStop?.();
     } else {
+      // Azzera prima di partire: una tratta rimasta aperta da una sessione
+      // precedente falserebbe la media di quella nuova.
+      onStart?.();
       startGps();
       void requestWakeLock();
     }

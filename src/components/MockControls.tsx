@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import { MAX_SPEED, rawSpeed, demoMode, speedSource } from '@/lib/speed';
 import { countFixes, pruneOldFixes } from '@/lib/db';
-import { rejectedFixes } from '@/lib/gps';
+import { rejectedFixes, dopplerFixes, derivedFixes } from '@/lib/gps';
 
 /**
  * Pannello diagnostico: pilota la velocità senza GPS e mostra lo stato del
@@ -62,6 +62,20 @@ export function MockControls() {
             />
             <span class="mock__value">{Math.round(rawSpeed.value)} km/h</span>
           </div>
+          <div class="mock__source">
+            <span>Sorgente velocità in questa sessione:</span>
+            <span class="mock__source-counts">
+              <strong>{dopplerFixes.value}</strong> doppler ·{' '}
+              <strong>{derivedFixes.value}</strong> derivati
+            </span>
+            {dopplerFixes.value === 0 && derivedFixes.value > 0 && (
+              <small>
+                Il chip non ha mai fornito la velocità Doppler: nel traffico
+                lento il dato derivato può essere letto come 0 km/h.
+              </small>
+            )}
+          </div>
+
           <div class="mock__db">
             <span>
               Log offline: <strong>{fixCount ?? '…'}</strong> fix

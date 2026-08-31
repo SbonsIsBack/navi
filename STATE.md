@@ -17,6 +17,13 @@ haversine). Le soglie (raggio di trigger 60 m, anti-drift, filtri di qualità)
 sono ragionate ma tarate su dati sintetici. Il prossimo passo concordato è
 attendere una guida reale e ritarare su quella.
 
+**Strumento di misura**: il pannello *Diagnostica* conta i fix per sorgente
+(`N doppler · M derivati`, azzerati a ogni avvio del tracking). L'etichetta
+nella barra di stato mostra solo l'ultimo fix e da fermo dice sempre
+"derivata", perché il chip non fornisce la velocità Doppler a veicolo immobile:
+il contatore è il dato da leggere a fine giro per sapere quale ramo ha davvero
+alimentato il viaggio.
+
 ## 🏗️ Decisioni architetturali
 
 | Ambito | Decisione | Motivazione |

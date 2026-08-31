@@ -19,6 +19,19 @@ export const gpsStale = signal(false);
 /** Fix scartati dai filtri di qualità: utile in diagnostica. */
 export const rejectedFixes = signal(0);
 
+/**
+ * Conteggio dei fix per sorgente della velocità, azzerato a ogni avvio del
+ * tracking.
+ *
+ * L'etichetta nella barra di stato mostra solo l'ultimo fix, e da fermo dice
+ * sempre "derivata" perché il chip GNSS non fornisce la velocità Doppler a
+ * veicolo immobile. Per sapere quale sorgente ha davvero alimentato un
+ * viaggio serve il totale, leggibile con calma a fine giro invece che
+ * guardando lo schermo mentre si guida.
+ */
+export const dopplerFixes = signal(0);
+export const derivedFixes = signal(0);
+
 /** ---- Soglie dei filtri di qualità ---- */
 const FILTERS = {
   /** Oltre questa incertezza il fix è inutilizzabile. */
@@ -126,6 +139,9 @@ function onPosition(pos: GeolocationPosition) {
     return;
   }
 
+  if (derived.doppler) dopplerFixes.value++;
+  else derivedFixes.value++;
+
   const kmh = median3(derived.kmh);
   const fix: Fix = {
     t: pos.timestamp,
@@ -171,6 +187,9 @@ export function startGps(): void {
   }
 
   resetFilters();
+  dopplerFixes.value = 0;
+  derivedFixes.value = 0;
+  rejectedFixes.value = 0;
   gpsStatus.value = 'requesting';
   gpsError.value = null;
   speedSource.value = 'gps';
